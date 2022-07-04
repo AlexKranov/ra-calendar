@@ -1,123 +1,120 @@
-import moment from "moment";
-import "moment/locale/ru";
-
 import PropTypes from "prop-types";
-const USID = require("usid");
-const usid = new USID();
 
-export default function Calendar(props) {
-  const date = moment(props.date);
+const secondsPerDay = 999;
 
-  const [currentDay, currentMonth, currentYear] = date.format("LL").split(" ");
+function CalendarFunc(props) {
+    const { date } = props;
+    const currentYear = date.getFullYear();
+    const day = date.getDay();
+    const month = date.getMonth();
+    const currentDate = date.getDate();
 
-  const curMonth = moment(new Date(date.year(), date.month())).daysInMonth(); //количество дней в текущем месяце
+    const currentMonth = [
+        'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ][month];
+    const currentDay = [
+        'Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'
+    ][day];
 
-  let prevMonth = moment(new Date(date.year(), date.month() - 1)).daysInMonth(); //предыдущий месяц(количество дней)
+    // Getting date just before first day:
+    const firstDate = new Date(currentYear, month, 1 );
+    const beforeFirstDate = new Date(firstDate.getTime() - secondsPerDay);
+    const dateBeforeMonthStarts = beforeFirstDate.getDate();
 
-  const startDayInMonth = moment(
-    new Date(date.year(), date.month())
-  ).isoWeekday(); //индекс 1 числа текущего месяца
+    // Getting last date of the month:
+    const firstDateOfNextMonth = new Date(currentYear, (month + 1) <= 11 ? month + 1 : 0, 1)
+    const lastDateOfMonth = new Date(firstDateOfNextMonth.getTime() - secondsPerDay);
+    const dateMonthEnds = lastDateOfMonth.getDate();
 
-  const rows = 6;
-  const cols = 7;
+    // Put month dates into array:
+    const monthDates = Array(dateMonthEnds).fill(0).map((x, index) => x = index + 1);
 
-  const index = (startDayInMonth + rows) % cols; //сколько дней предшествует 1 числу текущего месяца
-
-  let tbody = [];
-  let tr;
-  let nextDay = 1;
-  let count = 1 - index;
-
-  for (let i = 0; i < rows; i++) {
-    tr = [];
-    for (let j = 0; j < cols; j++) {
-      if (count <= 0) {
-        tr.push(
-          <td key={usid.rand()} className="ui-datepicker-other-month">
-            {count + prevMonth}
-          </td>
-        );
-      } else if (count === Number(currentDay)) {
-        tr.push(
-          <td key={usid.rand()} className="ui-datepicker-today">
-            {count}
-          </td>
-        );
-      } else if (count > 0 && count <= curMonth) {
-        tr.push(<td key={usid.rand()}>{count}</td>);
-      } else if (count > curMonth) {
-        tr.push(
-          <td key={usid.rand()} className="ui-datepicker-other-month">
-            {nextDay++}
-          </td>
-        );
-      }
-
-      count++;
+    // Find how many days needed to be added in front of the month:
+    let daysToUnshift;
+    const dayOfFirstDate = firstDate.getDay();
+    if (dayOfFirstDate === 0) { // means Sunday
+        daysToUnshift = 6;
+    } else {
+        daysToUnshift = dayOfFirstDate - 1;
     }
-    tbody.push(<tr key={usid.rand()}>{tr}</tr>);
-  }
 
-  return (
-    <div className="ui-datepicker">
-      <div className="ui-datepicker-material-header">
-        <div className="ui-datepicker-material-day">{date.format("dddd")}</div>
-        <div className="ui-datepicker-material-date">
-          <div className="ui-datepicker-material-day-num">{currentDay}</div>
-          <div className="ui-datepicker-material-month">{currentMonth}</div>
-          <div className="ui-datepicker-material-year">{currentYear}</div>
+    // Add the days:
+    for (let i = 0; i < daysToUnshift; i++) {
+        monthDates.unshift('' + (dateBeforeMonthStarts - i));
+    }
+
+    // Find how many dates needs to be added with push:
+    const daysToPush = 7 - monthDates.length % 7;
+
+    // Add the days, if necessary
+    for (let i = 0; i < daysToPush; i++) {
+        monthDates.push('' + (1 + i));
+    }
+
+    // Combine weeks to sub arrays:
+    const weeks = monthDates.length / 7;
+    const weeksArray = [];
+    for (let i = 0; i < weeks; i++) {
+        weeksArray.push(monthDates.slice(i * 7, i*7 + 7));
+    }
+
+    // Returning component:
+    return (
+        <div className="ui-datepicker">
+            <div className="ui-datepicker-material-header">
+                <div className="ui-datepicker-material-day">{currentDay}</div>
+                <div className="ui-datepicker-material-date">
+                    <div className="ui-datepicker-material-day-num">{currentDate}</div>
+                    <div className="ui-datepicker-material-month">{currentMonth}</div>
+                    <div className="ui-datepicker-material-year">{currentYear}</div>
+                </div>
+            </div>
+            <div className="ui-datepicker-header">
+                <div className="ui-datepicker-title">
+                    <span className="ui-datepicker-month">{currentMonth}</span>&nbsp;<span
+                    className="ui-datepicker-year">{currentYear}</span>
+                </div>
+            </div>
+            <table className="ui-datepicker-calendar">
+                <colgroup>
+                    <col/>
+                    <col/>
+                    <col/>
+                    <col/>
+                    <col/>
+                    <col className="ui-datepicker-week-end"/>
+                    <col className="ui-datepicker-week-end"/>
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col" title="Понедельник">Пн</th>
+                        <th scope="col" title="Вторник">Вт</th>
+                        <th scope="col" title="Среда">Ср</th>
+                        <th scope="col" title="Четверг">Чт</th>
+                        <th scope="col" title="Пятница">Пт</th>
+                        <th scope="col" title="Суббота">Сб</th>
+                        <th scope="col" title="Воскресенье">Вс</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {weeksArray.map((week, index) =>
+                        <tr key={'week' + index}>
+                            {week.map((date) =>
+                                <td className={
+                                    typeof date === 'string'? 'ui-datepicker-other-month' : '' +
+                                    typeof date === 'number' && date === currentDate ? 'ui-datepicker-today' : ''
+                                } key={date}>{date}</td>
+                            )}
+                        </tr>
+                    )}
+                </tbody>
+            </table>
         </div>
-      </div>
-      <div className="ui-datepicker-header">
-        <div className="ui-datepicker-title">
-          <span className="ui-datepicker-month">{date.format("MMMM")}</span>
-          &nbsp;
-          <span className="ui-datepicker-year">{currentYear}</span>
-        </div>
-      </div>
-      <table className="ui-datepicker-calendar">
-        <colgroup>
-          <col />
-          <col />
-          <col />
-          <col />
-          <col />
-          <col className="ui-datepicker-week-end" />
-          <col className="ui-datepicker-week-end" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col" title="Понедельник">
-              Пн
-            </th>
-            <th scope="col" title="Вторник">
-              Вт
-            </th>
-            <th scope="col" title="Среда">
-              Ср
-            </th>
-            <th scope="col" title="Четверг">
-              Чт
-            </th>
-            <th scope="col" title="Пятница">
-              Пт
-            </th>
-            <th scope="col" title="Суббота">
-              Сб
-            </th>
-            <th scope="col" title="Воскресенье">
-              Вс
-            </th>
-          </tr>
-        </thead>
-        <tbody>{tbody}</tbody>
-      </table>
-    </div>
-  );
+    );
 }
 
-Calendar.propTypes = {
-  item: PropTypes.shape({
-    now: PropTypes.object,
-  }),
-};
+CalendarFunc.propTypes = {
+    date: PropTypes.instanceOf(Date).isRequired
+}
+
+export default CalendarFunc;
